@@ -16,13 +16,21 @@ API_KEY = os.getenv("API_KEY")
 
 class CheckWeather:
   '''
-
-
+  Put values lat. and lon.  as arguments (int or float) and check the weather for the next 5 days.
+  Lat. vaule must be in range -90<lat<90 and  lon. -180<lon<180
   '''
 
   def __init__(self,lat=35.88,lon=76.51):
     self.lat = lat
     self.lon = lon
+    # checking if both values lat. and lon. are int or float
+    if not all([isinstance(self.lat,(int, float)) , isinstance(self.lon,(int, float))]):
+      raise TypeError("Only integers and float  are allowed")
+
+    # checking the range of value
+    if abs(self.lat) >= 90 or abs(self.lon) >= 180:
+      raise TabError('Incorrect value, -90<lat<90 and -180<lon<180')
+
     self.API()
     self.Create_DataBase_And_Table()
     self.Save_To_Sql()
@@ -50,7 +58,7 @@ class CheckWeather:
 
 
 
-    # create DataFrame and convert data
+    # createing  DataFrame and convert data
     df = pd.DataFrame(data=np.array(mylist), columns=['temp', 'pressure', 'clouds', 'date'])
     df['temp'] = df['temp'].apply(lambda x: float(x))
     df.set_index(['date'], inplace=True)
@@ -160,6 +168,6 @@ class CheckWeather:
 
     plt.show()
 
-p = CheckWeather()
+Weather = CheckWeather(-88,-178)
 
 
