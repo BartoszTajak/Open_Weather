@@ -1,16 +1,20 @@
-import mysql.connector
 import requests
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import json
 import os
 from dotenv import load_dotenv
 from geopy.geocoders import Nominatim
+from MySQL import *
+
 
 # loading config files  and  parameters like API_KEY
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
+
+# creating object to make the table
+p = SQL()
+p.Create_DataBase_And_Table()
 
 
 
@@ -32,8 +36,6 @@ class CheckWeather:
       raise TabError('Incorrect value, -90<lat<90 and -180<lon<180')
 
     self.API()
-    self.Create_DataBase_And_Table()
-    self.Save_To_Sql()
     self.Weather_Figure()
 
 
@@ -56,83 +58,29 @@ class CheckWeather:
       mylist.append(data)
 
 
-
-
     # createing  DataFrame and convert data
     df = pd.DataFrame(data=np.array(mylist), columns=['temp', 'pressure', 'clouds', 'date'])
     df['temp'] = df['temp'].apply(lambda x: float(x))
     df.set_index(['date'], inplace=True)
 
     data = [i[5:-3:] for i in list(df.index.values)]
-    self.data = [i.replace(' ', '   ') for i in data]
-    self.temp = df['temp'].tolist()
+    data = [i.replace(' ', '   ') for i in data]
+    temp = df['temp'].tolist()
 
     # Variable : temp. max,avg,min
-    self.max_temp = round(max(self.temp),2)
-    self.avg_temp = round(np.mean(self.temp),2)
-    self.min_temp = round(min(self.temp),2)
+    max_temp = round(max(temp),2)
+    avg_temp = round(np.mean(temp),2)
+    min_temp = round(min(temp),2)
 
-
-  def Create_DataBase_And_Table(self):
-
-    # Before first connecting one have to create a DataBase "Weather_DB"
-    self.mydb = mysql.connector.connect(
-      host="localhost",
-      user="root",
-      password="yourpassword",
-      database="Weather_DB"
-    )
-
-    self.mycursor = self.mydb.cursor()
-
-    # create sql table
-    self.mycursor.execute(f"CREATE TABLE IF NOT EXISTS  Weather "
-                     "(id INT AUTO_INCREMENT PRIMARY KEY ,"
-                     "LAT VARCHAR(1000),"
-                     "LON VARCHAR(1000),"
-                     "DATE VARCHAR(1000),"
-                     "TEMP VARCHAR(1000),"
-                     "MAX FLOAT(10),"
-                     "AVG FLOAT(10) ,"
-                     "MIN FLOAT(10) )")
-
-
-
-  def Save_To_Sql(self):
-
-    # change lists to string in order to save to sql
-    self.data = json.dumps(self.data)
-    self.temp = json.dumps(self.temp)
-
-    # parameters to sql
-    adr = (self.lat, self.lon)
-    val = [self.lat, self.lon, self.data, self.temp, self.max_temp, self.avg_temp, self.min_temp]
-
-    # sql commends
-    sql_insert = "INSERT INTO Weather (LAT, LON ,DATE,TEMP, MAX , AVG ,MIN) VALUES (%s, %s ,%s , %s , %s, %s , %s)"
-    sql_delete = "DELETE FROM weather WHERE LAT =%s AND LON =%s"
-
-
-    # if DB contains the same lat and lon value the record is replaced
-    self.sql_select = f"SELECT * FROM weather WHERE LAT ={self.lat} AND LON ={self.lon}"
-    self.mycursor.execute(self.sql_select)
-    myresult = self.mycursor.fetchall()
-
-
-    if len(myresult) != 0:
-      # Delete old record and save a new one
-      self.mycursor.execute(sql_delete, adr)
-      self.mycursor.execute(sql_insert, val)
-    else:
-      self.mycursor.execute(sql_insert, val)
-    self.mydb.commit()
+    # creating object to insert values
+    p = SQL()
+    p.Save_To_Sql(data,temp,self.lat,self.lon,max_temp,avg_temp,min_temp)
 
   def Weather_Figure(self):
 
-    # Extract data from SQL
-    sql_select_Data = f"SELECT DATE,TEMP,MAX , AVG ,MIN FROM weather WHERE LAT ={self.lat} AND LON ={self.lon}"
-    self.mycursor.execute(sql_select_Data)
-    myresult = self.mycursor.fetchall()
+    #  creating the object which takes data from SQL
+    p = SQL()
+    myresult = p.SearchInDb(self.lat,self.lon)
 
     # cleaning data
     date = myresult[0][0].replace('[','').replace(']','').replace('"','').split(', ')
@@ -142,13 +90,10 @@ class CheckWeather:
     for i in temp:
       temp_lista.append(float(i))
 
-
-
+    # library to check names of positions on the world
     geolocator = Nominatim(user_agent="usr")
     point = self.lat,self.lon
     location = str(geolocator.reverse(point)).split(',')[1::]
-
-
 
 
     # Parameters  for diagram
@@ -165,9 +110,13 @@ class CheckWeather:
     for item in Dic_temp:
       plt.axhline(Dic_temp[item] , color = 'black',label= f'{item} = {Dic_temp[item]}',linewidth=1)
       plt.text(len(date)+1.2,Dic_temp[item], f'{item} {Dic_temp[item]}',color= 'black',alpha=1)
-
+    # displaying diagram
     plt.show()
 
-Weather = CheckWeather(-88,-178)
+Weather = CheckWeather(50.22 , 18.3)
 
-
+# just check temerature based on lat ,lon
+p = SQL()
+results = p.FindPlace(50.22,18.3)
+for i in zip(*results):
+  print(i[0],'-----','temp',i[1])

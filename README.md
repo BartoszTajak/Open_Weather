@@ -20,6 +20,7 @@ To display a figure use the library matplotlib.The weather is forecast
 
 ## How to use
 1. Due to the program saving to MySQL the first step is to install database from <https://www.mysql.com/>
+
 2. Create database using code :
 ```
 mydb = mysql.connector.connect(
@@ -31,11 +32,18 @@ mydb = mysql.connector.connect(
 mycursor = mydb.cursor()
 mycursor.execute("CREATE DATABASE Weather_DB")
 ```
-3. Register on https://openweathermap.org/ and take API KEY.
+3. Register on <https://openweathermap.org/> and take API KEY.
 
 4. Create a new files .env and past your API KEY
 ![alt text](https://i.postimg.cc/dt68ykFn/API.png)
 
 
-
+5. In order to check temp. based on lat,lon.Use this code.
+```
+p = SQL()
+results = p.FindPlace(50.22,18.3)
+for i in zip(*results):
+  print(i[0],'-----','temp',i[1])
+```
+![alt text](https://i.postimg.cc/JnYs2hfN/list-temp.jpg)
 
